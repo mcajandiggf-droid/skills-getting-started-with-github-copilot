@@ -20,12 +20,45 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const spotsLeft = details.max_participants - details.participants.length;
 
+        // build participants list HTML if there are any
+        let participantsHtml = "";
+        if (details.participants && details.participants.length) {
+          participantsHtml = `
+            <div class="participants">
+              <strong>Participants:</strong>
+              <ul class="participants-list">
+                ${details.participants.map(p => `<li>${p} <span class="remove-participant" data-activity="${name}" data-email="${p}">&#x274C;</span></li>`).join("")}
+              </ul>
+            </div>
+          `;
+        }
+
         activityCard.innerHTML = `
           <h4>${name}</h4>
           <p>${details.description}</p>
           <p><strong>Schedule:</strong> ${details.schedule}</p>
           <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
+          ${participantsHtml}
         `;
+
+        // attach delete handlers after card is in DOM
+        activityCard.querySelectorAll('.remove-participant').forEach(el => {
+          el.addEventListener('click', async (e) => {
+            const activity = el.dataset.activity;
+            const email = el.dataset.email;
+            try {
+              const res = await fetch(`/activities/${encodeURIComponent(activity)}/participants?email=${encodeURIComponent(email)}`, {method: 'DELETE'});
+              if (res.ok) {
+                // refresh list to reflect removal
+                fetchActivities();
+              } else {
+                console.error('Failed to remove participant', await res.json());
+              }
+            } catch (err) {
+              console.error('Error removing participant:', err);
+            }
+          });
+        });
 
         activitiesList.appendChild(activityCard);
 
